@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Web Worker Demo</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="">
+  </head>
+  <body>
+    Iteration count <input type="text" id="iterations" value="10000">
+    <button onclick="start()">Start here</button>
+    <div id="timingTarget"></div>
+    <div id="outputTarget" style="font-size: 6px"></div>
+    
+    <script>
+      function updateDistribution(distributionData) {
+        const parent = document.querySelector('#outputTarget');
+        while (parent.firstChild) {
+            parent.firstChild.remove();
+        }
+
+        let frag = document.createDocumentFragment();
+        
+        distributionData.forEach((element, index, array) => {
+          let d = document.createElement('div');
+          let t = document.createTextNode(`${index} : ${element}`);
+          d.appendChild(t);
+          frag.appendChild(d);
+        })
+        
+        parent.appendChild(frag);        
+      }
+    
+      function start(){
+        let iterations = document.querySelector('#iterations').value;        
+        let myWorker = new Worker('worker.js');
+        let distribution = [];
+
+        myWorker.postMessage({ 
+          iterations: iterations,
+          minRandom: 1,
+          maxRandom: 50,
+          chunkSize: 1000
+        });
+        console.log('Message posted to worker');
+
+        myWorker.onmessage = function(e) {          
+          console.log('Message received from worker with type ' + e.data.type);
+          if(e.data.type == 'data')
+          {            
+            e.data.values.forEach(element => {
+              if(element in distribution)
+              {
+                distribution[element]++
+              }
+              else
+              {
+                distribution[element] = 1;
+              }
+            });
+
+            updateDistribution(distribution);
+          }
+          else
+          {
+            console.log("Worker finished");
+            document.querySelector('#outputTarget').appendChild(document.createTextNode('Worker finished'))
+          }          
+        }                
+      }
+
+    </script>
+  </body>
+</html>
